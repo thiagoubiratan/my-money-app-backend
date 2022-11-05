@@ -3,7 +3,7 @@ mongoose.Promise = global.Promise
 //module.exports = mongoose.connect('mongodb+srv://Thiago_Lima:RmzTC8BMhHvuOzn4@mymoneyapp.5tlxrh6.mongodb.net/mymoney?retryWrites=true&w=majority', { useNewUrlParser: true })
 //module.exports = mongoose.connect('mongodb://localhost/mymoney', { useNewUrlParser: true })
 if (process.env.MONGODB_URI) {
-    module.exports = mongoose.connect('mongodb+srv://Thiago_Lima:RmzTC8BMhHvuOzn4@mymoneyapp.5tlxrh6.mongodb.net/mymoney?retryWrites=true&w=majority', { useNewUrlParser: true })
+    module.exports = mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true })
 } else {
     module.exports = mongoose.connect('mongodb://localhost/mymoney', { useNewUrlParser: true })
 }
