@@ -5,7 +5,7 @@ mongoose.Promise = global.Promise
 if (process.env.MONGODB_URI) {
     module.exports = mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true })
 } else {
-    module.exports = mongoose.connect('mongodb://localhost/mymoney', { useNewUrlParser: true })
+    module.exports = mongoose.connect('mongodb+srv://Thiago_Lima:RmzTC8BMhHvuOzn4@mymoneyapp.5tlxrh6.mongodb.net/mymoney?retryWrites=true&w=majority', { useNewUrlParser: true })
 }
 
 mongoose.Error.messages.general.required = "O atributo '{PATH}' é obrigatório."
