@@ -5,6 +5,16 @@ BillingCycle.methods(['get', 'post', 'put', 'delete'])
 BillingCycle.updateOptions({new: true, runValidators: true})
 BillingCycle.after('post', errorHandler).after('put', errorHandler)
 
+BillingCycle.route('get', (req, res, next) => {
+    BillingCycle.find().sort({ year: -1, month: -1 }).exec((error, result) => {
+        if (error) {
+            res.status(500).json({ errors: [error] });
+        } else {
+            res.json(result);
+        }
+    });
+});
+
 BillingCycle.route('count', (req, res, next) => {
     BillingCycle.count((error, value) => {
         if(error) {
