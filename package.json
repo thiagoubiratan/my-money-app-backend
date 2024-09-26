@@ -17,7 +17,6 @@
     "lodash": "^4.17.21",
     "mongoose": "^8.6.3",
     "mongoose-paginate": "^5.0.3",
-    "node-restful": "^0.2.6",
     "pm2": "^5.4.2"
   },
   "devDependencies": {

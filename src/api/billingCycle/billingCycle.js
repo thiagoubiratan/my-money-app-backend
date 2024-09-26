@@ -1,5 +1,4 @@
-const restful = require('node-restful');
-const mongoose = restful.mongoose;
+const mongoose = require('mongoose');
 
 // Função de conversão para formatar o valor brasileiro
 function parseBrazilianCurrency(value) {
@@ -46,4 +45,4 @@ const billingCycleSchema = new mongoose.Schema({
     debts: [debtSchema]
 });
 
-module.exports = restful.model('BillingCycle', billingCycleSchema);
+module.exports = mongoose.model('BillingCycle', billingCycleSchema);

@@ -1,22 +1,18 @@
 const express = require('express');
-const BillingCycle = require('./billingCycle');
-const errorHandler = require('../common/errorHandler');
+const BillingCycle = require('./billingCycle'); // Modelo Mongoose
 
-// Criar um router do Express
 const router = express.Router();
 
 // Função para corrigir valores de créditos e débitos no formato brasileiro
 function fixValues(billingCycle) {
     if (billingCycle.credits) {
         billingCycle.credits.forEach(credit => {
-            // Remove qualquer caractere que não seja número, vírgula ou ponto
             credit.value = parseFloat(String(credit.value).replace(/[^\d,-]/g, '').replace(',', '.'));
         });
     }
 
     if (billingCycle.debts) {
         billingCycle.debts.forEach(debt => {
-            // Remove qualquer caractere que não seja número, vírgula ou ponto
             debt.value = parseFloat(String(debt.value).replace(/[^\d,-]/g, '').replace(',', '.'));
         });
     }
@@ -31,21 +27,19 @@ function formatToBrazilianNumber(value) {
 router.get('/', async (req, res) => {
     try {
         const result = await BillingCycle.find().sort({ year: -1, month: -1 });
-
-        // Iterar sobre os ciclos de faturamento para formatar os valores
         const formattedResult = result.map(billingCycle => {
             const formattedCredits = billingCycle.credits.map(credit => ({
-                ...credit._doc, // Manter os outros campos
+                ...credit._doc,
                 value: formatToBrazilianNumber(credit.value)
             }));
 
             const formattedDebts = billingCycle.debts.map(debt => ({
-                ...debt._doc, // Manter os outros campos
+                ...debt._doc,
                 value: formatToBrazilianNumber(debt.value)
             }));
 
             return {
-                ...billingCycle._doc, // Manter os outros campos do ciclo
+                ...billingCycle._doc,
                 credits: formattedCredits,
                 debts: formattedDebts
             };
@@ -57,12 +51,10 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Rota POST para criar um BillingCycle (com ajuste de valores)
+// Rota POST para criar um BillingCycle
 router.post('/', async (req, res) => {
     try {
-        // Corrigir os valores dos créditos e débitos no formato brasileiro antes de salvar
         fixValues(req.body);
-
         const billingCycle = new BillingCycle(req.body);
         const result = await billingCycle.save();
         res.json(result);
@@ -74,32 +66,12 @@ router.post('/', async (req, res) => {
 // Rota PUT para atualizar um BillingCycle
 router.put('/:id', async (req, res) => {
     try {
-        // Corrigir os valores dos créditos e débitos no formato brasileiro
         fixValues(req.body);
-
         const billingCycle = await BillingCycle.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
             runValidators: true
         });
-
-        // Formatar os valores do resultado retornado
-        const formattedCredits = billingCycle.credits.map(credit => ({
-            ...credit._doc, // Manter os outros campos
-            value: formatToBrazilianNumber(credit.value)
-        }));
-
-        const formattedDebts = billingCycle.debts.map(debt => ({
-            ...debt._doc, // Manter os outros campos
-            value: formatToBrazilianNumber(debt.value)
-        }));
-
-        const formattedResult = {
-            ...billingCycle._doc,
-            credits: formattedCredits,
-            debts: formattedDebts
-        };
-
-        res.json(formattedResult);
+        res.json(billingCycle);
     } catch (error) {
         res.status(500).json({ errors: [error.message] });
     }
@@ -109,7 +81,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         await BillingCycle.findByIdAndDelete(req.params.id);
-        res.status(204).send(); // Resposta de sucesso sem conteúdo
+        res.status(204).send();
     } catch (error) {
         res.status(500).json({ errors: [error.message] });
     }
@@ -134,5 +106,4 @@ router.get('/summary', async (req, res) => {
     }
 });
 
-// Exportar o router para ser usado em routes.js
 module.exports = router;
