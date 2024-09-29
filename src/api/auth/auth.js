@@ -27,7 +27,7 @@ router.post('/register', async (req, res) => {
         );
 
         // Retornar o token e as informações do usuário
-        res.status(201).json({ token, user: { name: user.name, email: user.email, userId: user._id } });
+        res.json({ token, name: user.name, email: user.email, userId: user._id });
     } catch (error) {
         // Logar o erro e retornar a mensagem exata para ajudar na depuração
         console.error('Erro ao registrar o usuário:', error);
