@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
 const router = express.Router();
 
 router.post('/register', async (req, res) => {
-    const { email, password } = req.body;
+    const { name, email, password } = req.body;
 
     // Verificar se o usuário já existe
     const existingUser = await User.findOne({ email });
@@ -16,18 +16,18 @@ router.post('/register', async (req, res) => {
 
     try {
         // Criar um novo usuário
-        const user = new User({ email, password });
+        const user = new User({ name, email, password });
         await user.save();
 
         // Gerar o token JWT
         const token = jwt.sign(
-            { userId: user._id, email: user.email },
+            { name: user.name, userId: user._id, email: user.email },
             process.env.JWT_SECRET,  // Certifique-se de que o segredo JWT está configurado no .env
             { expiresIn: '1h' }
         );
 
         // Retornar o token e as informações do usuário
-        res.status(201).json({ token, user: { email: user.email, userId: user._id } });
+        res.status(201).json({ token, user: { name: user.name, email: user.email, userId: user._id } });
     } catch (error) {
         // Logar o erro e retornar a mensagem exata para ajudar na depuração
         console.error('Erro ao registrar o usuário:', error);
@@ -35,12 +35,9 @@ router.post('/register', async (req, res) => {
     }
 });
 
-
-// Endpoint de login (já implementado)
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-
-    // Verificar se o usuário existe
+    const { name, email, password } = req.body;
+    
     const user = await User.findOne({ email });
     if (!user) {
         return res.status(400).json({ message: 'Usuário não encontrado' });
@@ -53,14 +50,11 @@ router.post('/login', async (req, res) => {
     }
 
     // Gerar o token JWT
-    const token = jwt.sign(
-        { userId: user._id, email: user.email },
-        process.env.JWT_SECRET,
-        { expiresIn: '1h' }
-    );
+    const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     // Retornar o token
-    res.json({ token });
+    var nomeUsuario = user.name;
+    res.json({ name: nomeUsuario, email, token });
 });
 
 module.exports = router;
