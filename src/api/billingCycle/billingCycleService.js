@@ -1,6 +1,6 @@
 const express = require('express');
 const BillingCycle = require('./billingCycle'); // Modelo Mongoose
-const authMiddleware = require('../../middleware/authMiddleware'); // Middleware de autenticação JWT
+// const authMiddleware = require('../../middleware/authMiddleware'); // Middleware de autenticação JWT
 
 const router = express.Router();
 
@@ -25,7 +25,7 @@ function formatToBrazilianNumber(value) {
 }
 
 // Rota GET para listar os BillingCycles ordenados
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         const result = await BillingCycle.find().sort({ year: -1, month: -1 });
         const formattedResult = result.map(billingCycle => {
@@ -53,7 +53,7 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 // Rota POST para criar um BillingCycle (Protegida)
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', async (req, res) => {
     try {
         fixValues(req.body);
         const billingCycle = new BillingCycle(req.body);
@@ -65,7 +65,7 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // Rota PUT para atualizar um BillingCycle (Protegida)
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', async (req, res) => {
     try {
         fixValues(req.body);
         const billingCycle = await BillingCycle.findByIdAndUpdate(req.params.id, req.body, {
@@ -79,7 +79,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 });
 
 // Rota DELETE para remover um BillingCycle (Protegida)
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', async (req, res) => {
     try {
         await BillingCycle.findByIdAndDelete(req.params.id);
         res.status(204).send();
@@ -89,7 +89,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 });
 
 // Rota GET para o summary (agregação de créditos e débitos)
-router.get('/summary', authMiddleware,  async (req, res) => {
+router.get('/summary', async (req, res) => {
     try {
         const result = await BillingCycle.aggregate([
             { $project: { credit: { $sum: "$credits.value" }, debt: { $sum: "$debts.value" } } },
