@@ -97,10 +97,14 @@ router.get('/summary', authMiddleware,  async (req, res) => {
             { $project: { _id: 0, credit: 1, debt: 1 } }
         ]);
 
+        
+
         const summaryResult = result[0] || { credit: 0, debt: 0 };
+        let consolidated = summaryResult.credit - summaryResult.debt;
         res.json({
             credit: formatToBrazilianNumber(summaryResult.credit),
-            debt: formatToBrazilianNumber(summaryResult.debt)
+            debt: formatToBrazilianNumber(summaryResult.debt),
+            consol: formatToBrazilianNumber(consolidated)
         });
     } catch (error) {
         res.status(500).json({ errors: [error.message] });
