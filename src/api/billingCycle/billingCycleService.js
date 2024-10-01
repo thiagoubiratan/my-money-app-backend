@@ -24,25 +24,51 @@ function formatToBrazilianNumber(value) {
     return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// Rota GET para listar os BillingCycles ordenados
+/// Rota GET para listar os BillingCycles ordenados
 router.get('/', authMiddleware, async (req, res) => {
     try {
         const result = await BillingCycle.find().sort({ year: -1, month: -1 });
         const formattedResult = result.map(billingCycle => {
+            // Formatação dos créditos
             const formattedCredits = billingCycle.credits.map(credit => ({
                 ...credit._doc,
                 value: formatToBrazilianNumber(credit.value)
             }));
 
+            // Formatação dos débitos
             const formattedDebts = billingCycle.debts.map(debt => ({
                 ...debt._doc,
                 value: formatToBrazilianNumber(debt.value)
             }));
 
+            // Somar o total de créditos usando reduce
+            let totalCredits = billingCycle.credits.reduce((acc, credit) => acc + credit.value, 0);
+
+            // Somar o total de débitos usando reduce
+            let totalDebits = billingCycle.debts.reduce((acc, debt) => acc + debt.value, 0);
+
+            // Calcular o valor consolidado (consol = totalCredits - totalDebits)
+            let consolidated = totalCredits - totalDebits;
+
+            // Somar apenas os débitos com status "PENDENTE"
+            let totalPendingDebts = billingCycle.debts
+                .filter(debt => debt.status === 'PENDENTE')  // Filtrar apenas os débitos pendentes
+                .reduce((acc, debt) => acc + debt.value, 0);  // Somar os valores dos débitos pendentes
+
+            // Formatar para o número brasileiro após somar (se necessário)
+            totalCredits = formatToBrazilianNumber(totalCredits);
+            totalDebits = formatToBrazilianNumber(totalDebits);
+            consolidated = formatToBrazilianNumber(consolidated);
+            totalPendingDebts = formatToBrazilianNumber(totalPendingDebts);
+
             return {
                 ...billingCycle._doc,
                 credits: formattedCredits,
-                debts: formattedDebts
+                debts: formattedDebts,
+                totalCredits: totalCredits,  // Total de créditos somado
+                totalDebits: totalDebits,    // Total de débitos somado
+                consol: consolidated,       // Valor consolidado (créditos - débitos)
+                pending: totalPendingDebts
             };
         });
 
@@ -51,6 +77,7 @@ router.get('/', authMiddleware, async (req, res) => {
         res.status(500).json({ errors: [error.message] });
     }
 });
+
 
 // Rota POST para criar um BillingCycle (Protegida)
 router.post('/', authMiddleware, async (req, res) => {

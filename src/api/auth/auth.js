@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 
 const router = express.Router();
 
+// Rota de registro
 router.post('/register', async (req, res) => {
     const { name, email, password } = req.body;
 
@@ -16,7 +17,8 @@ router.post('/register', async (req, res) => {
 
     try {
         // Criar um novo usuário
-        const user = new User({ name, email, password });
+        const hashedPassword = await bcrypt.hash(password, 10); // Hash da senha
+        const user = new User({ name, email, password: hashedPassword });
         await user.save();
 
         // Gerar o token JWT
@@ -35,8 +37,9 @@ router.post('/register', async (req, res) => {
     }
 });
 
+// Rota de login
 router.post('/login', async (req, res) => {
-    const { name, email, password } = req.body;
+    const { email, password } = req.body;
     
     const user = await User.findOne({ email });
     if (!user) {
@@ -44,7 +47,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Verificar se a senha está correta
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
         return res.status(400).json({ message: 'Senha incorreta' });
     }
@@ -52,9 +55,28 @@ router.post('/login', async (req, res) => {
     // Gerar o token JWT
     const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    // Retornar o token
-    var nomeUsuario = user.name;
-    res.json({ name: nomeUsuario, email, token });
+    // Retornar o token e informações do usuário
+    res.json({ name: user.name, email, token });
+});
+
+// Rota para validar o token JWT
+router.post('/validateToken', (req, res) => {
+    const { token } = req.body;  // Recebe o token do corpo da requisição
+
+    if (!token) {
+        return res.status(400).json({ valid: false, message: 'Token não fornecido.' });
+    }
+
+    // Verificar o token usando jwt.verify
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            // Token inválido ou expirado
+            return res.status(401).json({ valid: false, message: 'Token inválido ou expirado.' });
+        }
+
+        // Token válido
+        res.status(200).json({ valid: true });
+    });
 });
 
 module.exports = router;
