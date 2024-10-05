@@ -7,7 +7,7 @@ mongoose.Promise = global.Promise;
 if (process.env.MONGODB_URI) {
     module.exports = mongoose.connect(process.env.MONGODB_URI);
 } else {
-    module.exports = mongoose.connect('mongodb+srv://Thiago_Lima:RmzTC8BMhHvuOzn4@mymoneyapp.5tlxrh6.mongodb.net/gestao360?retryWrites=true&w=majority');
+    module.exports = mongoose.connect('mongodb+srv://Thiago_Lima:RmzTC8BMhHvuOzn4@mymoneyapp.5tlxrh6.mongodb.net/mymoney?retryWrites=true&w=majority');
 }
 
 // Mensagens de erro personalizadas
