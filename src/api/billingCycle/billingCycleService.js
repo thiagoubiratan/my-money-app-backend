@@ -24,10 +24,17 @@ function formatToBrazilianNumber(value) {
     return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-/// Rota GET para listar os BillingCycles ordenados
+// Rota GET para listar os BillingCycles ordenados (Protegida)
 router.get('/', authMiddleware, async (req, res) => {
     try {
-        const result = await BillingCycle.find().sort({ year: -1, month: -1 });
+        // Verifica se o ID do usuário autenticado está disponível em req.user
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({ errors: ['Usuário não autenticado.'] });
+        }
+
+        // Filtrar os ciclos de faturamento pelo ID do usuário logado
+        const result = await BillingCycle.find({ user: req.user.userId }).sort({ year: -1, month: -1 });
+
         const formattedResult = result.map(billingCycle => {
             // Formatação dos créditos
             const formattedCredits = billingCycle.credits.map(credit => ({
@@ -79,11 +86,23 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 
+
 // Rota POST para criar um BillingCycle (Protegida)
 router.post('/', authMiddleware, async (req, res) => {
     try {
         fixValues(req.body);
-        const billingCycle = new BillingCycle(req.body);
+
+        // Verifica se o ID do usuário autenticado está disponível em req.user
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({ errors: ['Usuário não autenticado.'] });
+        }
+
+        // Cria um novo BillingCycle e inclui o ID do usuário autenticado
+        const billingCycle = new BillingCycle({
+            ...req.body,          // Inclui todos os outros campos enviados no body
+            user: req.user.userId  // Associa o ciclo ao usuário autenticado
+        });
+
         const result = await billingCycle.save();
         res.json(result);
     } catch (error) {
@@ -91,15 +110,30 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 });
 
+
 // Rota PUT para atualizar um BillingCycle (Protegida)
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
+        // Verificar se o ID do usuário autenticado está presente
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({ errors: ['Usuário não autenticado.'] });
+        }
+
+        // Verificar se o ciclo de faturamento pertence ao usuário autenticado
+        const billingCycle = await BillingCycle.findOne({ _id: req.params.id, user: req.user.userId });
+        
+        if (!billingCycle) {
+            return res.status(404).json({ errors: ['Ciclo de faturamento não encontrado ou não pertence ao usuário.'] });
+        }
+
+        // Atualizar os valores com os novos dados
         fixValues(req.body);
-        const billingCycle = await BillingCycle.findByIdAndUpdate(req.params.id, req.body, {
+        const updatedBillingCycle = await BillingCycle.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
             runValidators: true
         });
-        res.json(billingCycle);
+
+        res.json(updatedBillingCycle);
     } catch (error) {
         res.status(500).json({ errors: [error.message] });
     }
@@ -108,26 +142,44 @@ router.put('/:id', authMiddleware, async (req, res) => {
 // Rota DELETE para remover um BillingCycle (Protegida)
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
-        await BillingCycle.findByIdAndDelete(req.params.id);
-        res.status(204).send();
+        // Verificar se o ID do usuário autenticado está presente
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({ errors: ['Usuário não autenticado.'] });
+        }
+
+        // Verificar se o ciclo de faturamento pertence ao usuário autenticado
+        const billingCycle = await BillingCycle.findOneAndDelete({ _id: req.params.id, user: req.user.userId });
+        
+        if (!billingCycle) {
+            return res.status(404).json({ errors: ['Ciclo de faturamento não encontrado ou não pertence ao usuário.'] });
+        }
+
+        res.status(204).send();  // Sucesso, sem conteúdo
     } catch (error) {
         res.status(500).json({ errors: [error.message] });
     }
 });
 
+
 // Rota GET para o summary (agregação de créditos e débitos)
-router.get('/summary', authMiddleware,  async (req, res) => {
+router.get('/summary', authMiddleware, async (req, res) => {
     try {
+        // Verificar se o ID do usuário autenticado está presente
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({ errors: ['Usuário não autenticado.'] });
+        }
+
+        // Agregar apenas os ciclos de faturamento do usuário autenticado
         const result = await BillingCycle.aggregate([
+            { $match: { user: req.user.userId } },  // Filtrar os ciclos do usuário autenticado
             { $project: { credit: { $sum: "$credits.value" }, debt: { $sum: "$debts.value" } } },
             { $group: { _id: null, credit: { $sum: "$credit" }, debt: { $sum: "$debt" } } },
             { $project: { _id: 0, credit: 1, debt: 1 } }
         ]);
 
-        
-
         const summaryResult = result[0] || { credit: 0, debt: 0 };
         let consolidated = summaryResult.credit - summaryResult.debt;
+
         res.json({
             credit: formatToBrazilianNumber(summaryResult.credit),
             debt: formatToBrazilianNumber(summaryResult.debt),

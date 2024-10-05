@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { Schema } = mongoose; // Adicione esta linha
 
 // Função de conversão para formatar o valor brasileiro
 function parseBrazilianCurrency(value) {
@@ -9,24 +10,22 @@ function parseBrazilianCurrency(value) {
     return parseFloat(value);
 }
 
-const creditSchema = new mongoose.Schema({
+const creditSchema = new Schema({
     name: { type: String, required: true },
     value: { 
         type: Number, 
         min: 0, 
         required: true,
-        // Usa setter para converter o formato brasileiro de moeda
         set: parseBrazilianCurrency 
     }
 });
 
-const debtSchema = new mongoose.Schema({
+const debtSchema = new Schema({
     name: { type: String, required: true },
     value: { 
         type: Number, 
         min: 0, 
         required: [true, 'Informe o valor do débito!'],
-        // Usa setter para converter o formato brasileiro de moeda
         set: parseBrazilianCurrency
     },
     status: { 
@@ -37,12 +36,13 @@ const debtSchema = new mongoose.Schema({
     }
 });
 
-const billingCycleSchema = new mongoose.Schema({
+const billingCycleSchema = new Schema({
     name: { type: String, required: true },
     month: { type: Number, min: 1, max: 12, required: true },
     year: { type: Number, min: 1970, max: 2100, required: true },
     credits: [creditSchema],
-    debts: [debtSchema]
+    debts: [debtSchema],
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true } // Referência ao usuário
 });
 
 module.exports = mongoose.model('BillingCycle', billingCycleSchema);
