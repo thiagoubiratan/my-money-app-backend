@@ -85,8 +85,6 @@ router.get('/', authMiddleware, async (req, res) => {
     }
 });
 
-
-
 // Rota POST para criar um BillingCycle (Protegida)
 router.post('/', authMiddleware, async (req, res) => {
     try {
@@ -109,7 +107,6 @@ router.post('/', authMiddleware, async (req, res) => {
         res.status(500).json({ errors: [error.message] });
     }
 });
-
 
 // Rota PUT para atualizar um BillingCycle (Protegida)
 router.put('/:id', authMiddleware, async (req, res) => {

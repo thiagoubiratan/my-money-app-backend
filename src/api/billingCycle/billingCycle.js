@@ -33,6 +33,16 @@ const debtSchema = new Schema({
         required: false, 
         uppercase: true,
         enum: ['PAGO', 'PENDENTE', 'AGENDADO'] 
+    },
+    paymentday: {
+        type: Number,
+        required: [true, 'Informe o dia do pagamento!'],
+        min: 1,
+        Max: 31
+    },
+    paymentDate: {
+        type: Date,
+        required: false
     }
 });
 
