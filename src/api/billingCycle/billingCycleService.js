@@ -166,25 +166,35 @@ router.get('/summary', authMiddleware, async (req, res) => {
             return res.status(401).json({ errors: ['Usuário não autenticado.'] });
         }
 
-        // Agregar apenas os ciclos de faturamento do usuário autenticado
-        const result = await BillingCycle.aggregate([
-            { $match: { user: req.user.userId } },  // Filtrar os ciclos do usuário autenticado
-            { $project: { credit: { $sum: "$credits.value" }, debt: { $sum: "$debts.value" } } },
-            { $group: { _id: null, credit: { $sum: "$credit" }, debt: { $sum: "$debt" } } },
-            { $project: { _id: 0, credit: 1, debt: 1 } }
-        ]);
+        // Buscar todos os BillingCycles do usuário autenticado
+        const billingCycles = await BillingCycle.find({ user: req.user.userId });
 
-        const summaryResult = result[0] || { credit: 0, debt: 0 };
-        let consolidated = summaryResult.credit - summaryResult.debt;
+        // Inicializar acumuladores
+        let totalCredits = 0;
+        let totalDebts = 0;
 
+        // Iterar sobre os ciclos de faturamento e somar créditos e débitos
+        billingCycles.forEach(billingCycle => {
+            // Somar os valores de todos os créditos
+            totalCredits += billingCycle.credits.reduce((acc, credit) => acc + (parseFloat(credit.value) || 0), 0);
+            
+            // Somar os valores de todos os débitos
+            totalDebts += billingCycle.debts.reduce((acc, debt) => acc + (parseFloat(debt.value) || 0), 0);
+        });
+
+        // Calcular o valor consolidado (créditos - débitos)
+        const consolidated = totalCredits - totalDebts;
+
+        // Retornar os valores formatados em estilo brasileiro
         res.json({
-            credit: formatToBrazilianNumber(summaryResult.credit),
-            debt: formatToBrazilianNumber(summaryResult.debt),
+            credit: formatToBrazilianNumber(totalCredits),
+            debt: formatToBrazilianNumber(totalDebts),
             consol: formatToBrazilianNumber(consolidated)
         });
     } catch (error) {
         res.status(500).json({ errors: [error.message] });
     }
 });
+
 
 module.exports = router;
