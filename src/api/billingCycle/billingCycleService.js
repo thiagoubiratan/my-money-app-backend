@@ -1,6 +1,7 @@
 const express = require('express');
 const BillingCycle = require('./billingCycle'); // Modelo Mongoose
 const authMiddleware = require('../../middleware/authMiddleware'); // Middleware de autenticação JWT
+const { validateBillingCycle } = require('./validationService'); // Importa a validação
 
 const router = express.Router();
 
@@ -85,26 +86,29 @@ router.get('/', authMiddleware, async (req, res) => {
     }
 });
 
-// Rota POST para criar um BillingCycle (Protegida)
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        fixValues(req.body);
+        // Função de validação manual
+        const validationErrors = validateBillingCycle(req.body);
 
-        // Verifica se o ID do usuário autenticado está disponível em req.user
+        // Se houver erros, retornar antes de tentar salvar no banco
+        if (validationErrors.length > 0) {
+            return res.status(400).json({ errors: validationErrors });
+        }
+
         if (!req.user || !req.user.userId) {
             return res.status(401).json({ errors: ['Usuário não autenticado.'] });
         }
 
-        // Cria um novo BillingCycle e inclui o ID do usuário autenticado
         const billingCycle = new BillingCycle({
-            ...req.body,          // Inclui todos os outros campos enviados no body
-            user: req.user.userId  // Associa o ciclo ao usuário autenticado
+            ...req.body,
+            user: req.user.userId
         });
 
         const result = await billingCycle.save();
         res.json(result);
     } catch (error) {
-        res.status(500).json({ errors: [error.message] });
+        res.status(500).json({ errors: ['Erro interno no servidor.'] });
     }
 });
 
@@ -118,16 +122,24 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
         // Verificar se o ciclo de faturamento pertence ao usuário autenticado
         const billingCycle = await BillingCycle.findOne({ _id: req.params.id, user: req.user.userId });
-        
+
         if (!billingCycle) {
             return res.status(404).json({ errors: ['Ciclo de faturamento não encontrado ou não pertence ao usuário.'] });
         }
 
+        // Validação manual antes de atualizar
+        const validationErrors = validateBillingCycle(req.body);
+        if (validationErrors.length > 0) {
+            return res.status(400).json({ errors: validationErrors });
+        }
+
         // Atualizar os valores com os novos dados
         fixValues(req.body);
+        
+        // Realizar a atualização
         const updatedBillingCycle = await BillingCycle.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-            runValidators: true
+            new: true,            // Retorna o documento atualizado
+            runValidators: true    // Aplica as validações definidas no schema do Mongoose
         });
 
         res.json(updatedBillingCycle);
@@ -135,6 +147,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
         res.status(500).json({ errors: [error.message] });
     }
 });
+
 
 // Rota DELETE para remover um BillingCycle (Protegida)
 router.delete('/:id', authMiddleware, async (req, res) => {

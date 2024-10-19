@@ -11,11 +11,14 @@ function parseBrazilianCurrency(value) {
 }
 
 const creditSchema = new Schema({
-    name: { type: String, required: true },
+    name: { 
+        type: String, 
+        required: [true, 'Informe o nome do crédito!']
+    },
     value: { 
         type: Number, 
         min: 0, 
-        required: true,
+        required: [true, 'Informe o valor do crédito!'],
         set: parseBrazilianCurrency 
     }
 });
@@ -30,7 +33,7 @@ const debtSchema = new Schema({
     },
     status: { 
         type: String, 
-        required: false, 
+        required: [true, 'Informe o status do pamento!'],
         uppercase: true,
         enum: ['PAGO', 'PENDENTE', 'AGENDADO'] 
     },
@@ -42,7 +45,7 @@ const debtSchema = new Schema({
     },
     paymentDate: {
         type: Date,
-        required: false
+        required: [true, 'Informe a data do pamento!'],
     }
 });
 
