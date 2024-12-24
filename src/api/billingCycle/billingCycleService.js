@@ -209,5 +209,55 @@ router.get('/summary', authMiddleware, async (req, res) => {
     }
 });
 
+// Rota POST para duplicar um ciclo de pagamento
+router.post('/duplicate/:id', authMiddleware, async (req, res) => {
+    try {
+        // Verificar se o ID do usuário autenticado está presente
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({ errors: ['Usuário não autenticado.'] });
+        }
+
+        // Encontrar o ciclo de pagamento pelo ID fornecido e do usuário autenticado
+        const originalBillingCycle = await BillingCycle.findOne({
+            _id: req.params.id,
+            user: req.user.userId
+        });
+
+        if (!originalBillingCycle) {
+            return res.status(404).json({ errors: ['Ciclo de pagamento não encontrado.'] });
+        }
+
+        // Modificar os créditos e débitos para o novo ciclo
+        const newCredits = originalBillingCycle.credits.map(credit => ({
+            name: credit.name,
+            value: 0.01 // Valor padrão
+        }));
+
+        const newDebts = originalBillingCycle.debts.map(debt => ({
+            name: debt.name,
+            value: 0.01, // Valor padrão
+            status: 'PENDENTE', // Manter o status original
+            paymentday: debt.paymentday, // Manter o dia do pagamento original
+            paymentDate: new Date() // Data atual
+        }));
+
+        // Criar um novo ciclo com os dados alterados
+        const newBillingCycle = new BillingCycle({
+            name: `${originalBillingCycle.name} - Cópia`, // Nome do ciclo modificado
+            month: originalBillingCycle.month,
+            year: originalBillingCycle.year,
+            credits: newCredits,
+            debts: newDebts,
+            user: req.user.userId // Associar ao usuário autenticado
+        });
+
+        // Salvar no banco de dados
+        const result = await newBillingCycle.save();
+
+        res.status(201).json(result);
+    } catch (error) {
+        res.status(500).json({ errors: [error.message] });
+    }
+});
 
 module.exports = router;
