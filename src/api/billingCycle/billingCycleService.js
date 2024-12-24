@@ -235,7 +235,7 @@ router.post('/duplicate/:id', authMiddleware, async (req, res) => {
 
         const newDebts = originalBillingCycle.debts.map(debt => ({
             name: debt.name,
-            value: 0.01, // Valor padrão
+            value: debt.value, // Valor padrão
             status: 'PENDENTE', // Manter o status original
             paymentday: debt.paymentday, // Manter o dia do pagamento original
             paymentDate: new Date() // Data atual
