@@ -46,7 +46,8 @@ const debtSchema = new Schema({
     paymentDate: {
         type: Date,
         required: [true, 'Informe a data do pamento!'],
-    }
+    },
+    category: { type: String, required: true },
 });
 
 const billingCycleSchema = new Schema({
