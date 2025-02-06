@@ -170,45 +170,6 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-
-// Rota GET para o summary (agregação de créditos e débitos)
-router.get('/summary', authMiddleware, async (req, res) => {
-    try {
-        // Verificar se o ID do usuário autenticado está presente
-        if (!req.user || !req.user.userId) {
-            return res.status(401).json({ errors: ['Usuário não autenticado.'] });
-        }
-
-        // Buscar todos os BillingCycles do usuário autenticado
-        const billingCycles = await BillingCycle.find({ user: req.user.userId });
-
-        // Inicializar acumuladores
-        let totalCredits = 0;
-        let totalDebts = 0;
-
-        // Iterar sobre os ciclos de faturamento e somar créditos e débitos
-        billingCycles.forEach(billingCycle => {
-            // Somar os valores de todos os créditos
-            totalCredits += billingCycle.credits.reduce((acc, credit) => acc + (parseFloat(credit.value) || 0), 0);
-            
-            // Somar os valores de todos os débitos
-            totalDebts += billingCycle.debts.reduce((acc, debt) => acc + (parseFloat(debt.value) || 0), 0);
-        });
-
-        // Calcular o valor consolidado (créditos - débitos)
-        const consolidated = totalCredits - totalDebts;
-
-        // Retornar os valores formatados em estilo brasileiro
-        res.json({
-            credit: formatToBrazilianNumber(totalCredits),
-            debt: formatToBrazilianNumber(totalDebts),
-            consol: formatToBrazilianNumber(consolidated)
-        });
-    } catch (error) {
-        res.status(500).json({ errors: [error.message] });
-    }
-});
-
 // Rota POST para duplicar um ciclo de pagamento
 router.post('/duplicate/:id', authMiddleware, async (req, res) => {
     try {
@@ -259,5 +220,60 @@ router.post('/duplicate/:id', authMiddleware, async (req, res) => {
         res.status(500).json({ errors: [error.message] });
     }
 });
+
+router.get('/summary', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({ errors: ['Usuário não autenticado.'] });
+        }
+
+        // Buscar todos os BillingCycles do usuário autenticado
+        const billingCycles = await BillingCycle.find({ user: req.user.userId });
+
+        // Inicializar acumuladores
+        let totalCredits = 0;
+        let totalDebts = 0;
+        let categoryTotals = {};
+
+        // Iterar sobre os ciclos de faturamento e somar créditos e débitos
+        billingCycles.forEach(billingCycle => {
+            // Somar os valores de todos os créditos
+            totalCredits += billingCycle.credits.reduce((acc, credit) => acc + (parseFloat(credit.value) || 0), 0);
+            
+            // Somar os valores de todos os débitos e agrupar por categoria
+            billingCycle.debts.forEach(debt => {
+                const category = debt.category || 'Outros'; // Categoria padrão se não houver
+                const value = parseFloat(debt.value) || 0;
+
+                if (!categoryTotals[category]) {
+                    categoryTotals[category] = 0;
+                }
+                
+                categoryTotals[category] += value;
+                totalDebts += value;
+            });
+        });
+
+        // Calcular o valor consolidado (créditos - débitos)
+        const consolidated = totalCredits - totalDebts;
+
+        // Transformar categorias em um array formatado
+        const categories = Object.keys(categoryTotals).map(category => ({
+            category,
+            total: formatToBrazilianNumber(categoryTotals[category])
+        }));
+
+        // Retornar os valores formatados em estilo brasileiro
+        res.json({
+            credit: formatToBrazilianNumber(totalCredits),
+            debt: formatToBrazilianNumber(totalDebts),
+            consol: formatToBrazilianNumber(consolidated),
+            categories // Enviando as categorias junto com o resumo
+        });
+    } catch (error) {
+        res.status(500).json({ errors: [error.message] });
+    }
+});
+
 
 module.exports = router;
