@@ -199,7 +199,8 @@ router.post('/duplicate/:id', authMiddleware, async (req, res) => {
             value: debt.value, // Valor padrão
             status: 'PENDENTE', // Manter o status original
             paymentday: debt.paymentday, // Manter o dia do pagamento original
-            paymentDate: new Date() // Data atual
+            paymentDate: new Date(), // Data atual
+            category: debt.category
         }));
 
         // Criar um novo ciclo com os dados alterados

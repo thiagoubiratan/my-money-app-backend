@@ -1,3 +1,0 @@
-para subir o container 
-
-docker-compose -p meudinheiro360 up -d

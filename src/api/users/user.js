@@ -16,7 +16,6 @@ userSchema.pre('save', async function (next) {
     next();
 });
 
-
 // Método para verificar a senha do usuário
 userSchema.methods.comparePassword = async function (password) {
     return await bcrypt.compare(password, this.password);
