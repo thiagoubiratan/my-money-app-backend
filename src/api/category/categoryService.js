@@ -47,7 +47,8 @@ router.get('/', authMiddleware, async (req, res) => {
 
     try {
 
-        var categories = await Category.find({ user: req.user.userId })
+        var categories = await Category.find({ user: req.user.userId }).sort({ description: 1 });
+
         return res.json({ categories })
 
     } catch (error) {
