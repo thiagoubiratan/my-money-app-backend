@@ -47,7 +47,10 @@ router.get('/', authMiddleware, async (req, res) => {
 
     try {
 
-        var categories = await Category.find({ user: req.user.userId }).sort({ description: 1 });
+        var categories = await Category.find({ user: req.user.userId })
+            .collation({ locale: 'pt', strength: 1 })
+            .sort({ description: 1 });
+
 
         return res.json({ categories })
 
@@ -112,7 +115,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
         }
 
         res.status(204).send();
-        
+
     } catch (error) {
         res.status(500).json({ errors: [error.message] });
     }
