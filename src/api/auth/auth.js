@@ -2,8 +2,10 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../users/user'); // Modelo de usuário
 const bcrypt = require('bcryptjs');
+const authMiddleware = require('../../middleware/authMiddleware');
 
 const router = express.Router();
+
 // Rota de registro
 router.post('/register', async (req, res) => {
     const { name, email, password } = req.body;
@@ -84,6 +86,41 @@ router.post('/validateToken', (req, res) => {
         // Token válido
         res.status(200).json({ valid: true });
     });
+});
+
+router.put('/updateUser', authMiddleware, async (req, res) => {
+    const { email, oldPassword, newPassword } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(400).json({ message: 'Usuário não encontrado' });
+        }
+
+        // Verifica se a senha antiga bate
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Senha anterior incorreta' });
+        }
+
+        // Criptografa a nova senha
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // Atualiza diretamente no banco
+        const updatedUser = await User.findByIdAndUpdate(
+            user._id,
+            { password: hashedPassword },
+            { new: true, runValidators: true }
+        );
+
+        res.json({ updatedUser, message: 'Senha atualizada com sucesso.' });
+
+    } catch (error) {
+        console.error("Erro ao atualizar usuário:", error);
+        res.status(500).json({ message: `Erro ao atualizar: ${error.message}` });
+    }
 });
 
 module.exports = router;
